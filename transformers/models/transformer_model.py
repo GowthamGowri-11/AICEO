@@ -44,7 +44,8 @@ class TransformerLM(nn.Module):
         max_seq_len: int = 64,
         d_ff: int = 512,
         dropout: float = 0.1,
-        tie_weights: bool = True
+        tie_weights: bool = True,
+        pad_token_id: Optional[int] = 0
     ):
         super().__init__()
         self.vocab_size = vocab_size
@@ -55,6 +56,7 @@ class TransformerLM(nn.Module):
         self.d_ff = d_ff
         self.dropout_rate = dropout
         self.tie_weights = tie_weights
+        self.pad_token_id = pad_token_id
 
         # 1. Token Embeddings
         self.tok_embed = nn.Embedding(vocab_size, d_model)
@@ -134,6 +136,11 @@ class TransformerLM(nn.Module):
         # Step 3: Combine token and position information and apply dropout
         x = self.drop(tok_embeddings + pos_embeddings)
 
+        # Automatically generate key-padding mask if not explicitly provided
+        if padding_mask is None and self.pad_token_id is not None:
+            # Shape: (batch_size, 1, 1, seq_len)
+            padding_mask = (input_ids != self.pad_token_id).unsqueeze(1).unsqueeze(2).float()
+
         # Step 4: Pass through sequential Transformer blocks
         all_attentions = [] if return_attention else None
         for block in self.blocks:
@@ -169,5 +176,6 @@ class TransformerLM(nn.Module):
             "max_seq_len": self.max_seq_len,
             "d_ff": self.d_ff,
             "dropout": self.dropout_rate,
-            "tie_weights": self.tie_weights
+            "tie_weights": self.tie_weights,
+            "pad_token_id": self.pad_token_id
         }

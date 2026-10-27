@@ -170,7 +170,7 @@ class CausalSelfAttention(nn.Module):
         # Combine with optional key padding mask if provided
         if padding_mask is not None:
             # padding_mask: (B, 1, 1, T) broadcasts across (B, 1, T, T)
-            combined_mask = combined_mask * padding_mask
+            combined_mask = combined_mask * padding_mask.to(dtype=combined_mask.dtype)
 
         # Step 4: Scaled dot-product attention
         # context: (B, H, T, head_dim), attn_weights: (B, H, T, T)

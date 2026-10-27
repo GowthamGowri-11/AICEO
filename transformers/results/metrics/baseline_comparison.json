@@ -1,0 +1,15 @@
+{
+  "total_evaluated_tokens": 1560,
+  "vocabulary_size": 3189,
+  "uniform_random_accuracy_pct": 0.0314,
+  "most_frequent_token_id": 4,
+  "most_frequent_accuracy_pct": 5.83,
+  "most_frequent_correct_tokens": 91,
+  "bigram_markov_accuracy_pct": 17.18,
+  "bigram_markov_correct_tokens": 268,
+  "transformer_top1_accuracy_pct": 16.92,
+  "transformer_top5_accuracy_pct": 26.79,
+  "transformer_test_loss": 6.4397,
+  "transformer_test_perplexity": 626.2321,
+  "most_frequent_token_string": "."
+}

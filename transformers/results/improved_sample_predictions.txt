@@ -1,0 +1,75 @@
+===========================================================================
+       IMPROVED TRANSFORMER NEXT-TOKEN PREDICTION REPORT
+       Model: best_transformer_improved.pt (2-Block, 4-Head Pre-LN)
+===========================================================================
+
+Prompt:        'The sun rises in the'
+Top Next:      'the' (1.47%)
+Top 5:         1. the (1.5%), 2. a (1.1%), 3. earth (0.6%), 4. sun (0.5%), 5. an (0.4%)
+Greedy:        'the sun rises in the the a the the the the the the'
+Top-K (k=5):   'the sun rises in the a a the a earth of the a'
+Nucleus (p=0.9): 'the sun rises in the heat occurs are this each or organized with'
+---------------------------------------------------------------------------
+Prompt:        'Saturn is famous for its'
+Top Next:      'the' (0.32%)
+Top 5:         1. the (0.3%), 2. earth (0.3%), 3. a (0.3%), 4. sun (0.2%), 5. linear (0.2%)
+Greedy:        'saturn is famous for its the a earth.'
+Top-K (k=5):   'saturn is famous for its a sun of the sun.'
+Nucleus (p=0.9): 'saturn is famous for its deciduous using dense a possesses by mirrors atmosphere'
+---------------------------------------------------------------------------
+Prompt:        'Water freezes into solid'
+Top Next:      ',' (1.87%)
+Top 5:         1. , (1.9%), 2. to (1.2%), 3. by (1.1%), 4. and (1.0%), 5. of (1.0%)
+Greedy:        'water freezes into solid, and'
+Top-K (k=5):   'water freezes into solid and earth by the a the the a'
+Nucleus (p=0.9): 'water freezes into solid amino mask, oceanic physical complex organisms to'
+---------------------------------------------------------------------------
+Prompt:        'Light travels faster than'
+Top Next:      'the' (12.00%)
+Top 5:         1. the (12.0%), 2. a (4.7%), 3. an (0.9%), 4. all (0.7%), 5. linear (0.6%)
+Greedy:        'light travels faster than the a the the the the the the'
+Top-K (k=5):   'light travels faster than the a sun and sun.'
+Nucleus (p=0.9): 'light travels faster than a sharpness in sets, their called by'
+---------------------------------------------------------------------------
+Prompt:        'Machine learning is a'
+Top Next:      'the' (1.31%)
+Top 5:         1. the (1.3%), 2. a (1.1%), 3. earth (0.5%), 4. sun (0.5%), 5. an (0.4%)
+Greedy:        'machine learning is a the the the the the the a a'
+Top-K (k=5):   'machine learning is a a the sun in earth.'
+Nucleus (p=0.9): 'machine learning is a thermodynamic of the sequence, - artificial items'
+---------------------------------------------------------------------------
+Prompt:        'Self attention allows each token to'
+Top Next:      'the' (1.67%)
+Top 5:         1. the (1.7%), 2. a (0.9%), 3. earth (0.4%), 4. an (0.4%), 5. all (0.4%)
+Greedy:        'self attention allows each token to the a the the the the the the'
+Top-K (k=5):   'self attention allows each token to the earth of a an earth.'
+Nucleus (p=0.9): 'self attention allows each token to small generation and one instances.'
+---------------------------------------------------------------------------
+Prompt:        'A triangle has three'
+Top Next:      ',' (1.56%)
+Top 5:         1. , (1.6%), 2. of (1.2%), 3. and (1.1%), 4. to (1.1%), 5. by (1.1%)
+Greedy:        'a triangle has three, and the a the the the the'
+Top-K (k=5):   'a triangle has three to the the a an a sun of'
+Nucleus (p=0.9): 'a triangle has three, ones with water geometric tokenizer using the'
+---------------------------------------------------------------------------
+Prompt:        'An algorithm is a step by step'
+Top Next:      ',' (2.50%)
+Top 5:         1. , (2.5%), 2. to (2.1%), 3. of (1.9%), 4. and (1.6%), 5. by (1.4%)
+Greedy:        'an algorithm is a step by step, and'
+Top-K (k=5):   'an algorithm is a step by step, and sun, the'
+Nucleus (p=0.9): 'an algorithm is a step by step, which angle at the feature self.'
+---------------------------------------------------------------------------
+Prompt:        'Trees produce oxygen through'
+Top Next:      'the' (4.42%)
+Top 5:         1. the (4.4%), 2. a (2.3%), 3. an (0.7%), 4. earth (0.6%), 5. sun (0.5%)
+Greedy:        'trees produce oxygen through the a the the the earth.'
+Top-K (k=5):   'trees produce oxygen through a sun,, the earth to'
+Nucleus (p=0.9): 'trees produce oxygen through nuclear vectors without into level at subtle around'
+---------------------------------------------------------------------------
+Prompt:        'Biological cells are the fundamental'
+Top Next:      'of' (1.10%)
+Top 5:         1. of (1.1%), 2. is (0.8%), 3. are (0.7%), 4. - (0.4%), 5. by (0.4%)
+Greedy:        'biological cells are the fundamental of the a the the the the the'
+Top-K (k=5):   'biological cells are the fundamental is the sun of the a the earth'
+Nucleus (p=0.9): 'biological cells are the fundamental languages oxide languages that seismic terms and which'
+---------------------------------------------------------------------------

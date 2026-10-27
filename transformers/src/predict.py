@@ -92,6 +92,8 @@ def generate_text(
     max_new_tokens: int = 10,
     temperature: float = 1.0,
     sample: bool = False,
+    top_k: Optional[int] = None,
+    top_p: Optional[float] = None,
     repetition_penalty: float = 1.15,
     device: Optional[torch.device] = None,
     stop_at_eos: bool = True
@@ -105,7 +107,10 @@ def generate_text(
         prompt: Initial text prompt.
         max_new_tokens: Maximum number of tokens to generate.
         temperature: Temperature scaling factor (T > 0).
-        sample: If True, uses multinomial sampling; otherwise greedy argmax.
+        sample: If True, uses sampling; otherwise greedy argmax.
+        top_k: Optional top-k filtering threshold.
+        top_p: Optional nucleus (top-p) probability threshold.
+        repetition_penalty: Multiplicative penalty for recently generated tokens.
         device: Torch device.
         stop_at_eos: If True, halts generation upon producing <EOS>.
 
@@ -130,7 +135,7 @@ def generate_text(
 
         with torch.no_grad():
             logits, _ = model(input_tensor)
-            next_logits = logits[0, -1, :]
+            next_logits = logits[0, -1, :].clone()
 
             # Prevent predicting <PAD> or <BOS>
             next_logits[tokenizer.pad_token_id] = float("-inf")
@@ -147,6 +152,27 @@ def generate_text(
 
             if sample:
                 scaled_logits = next_logits / max(temperature, 1e-4)
+
+                # Optional Top-K filtering
+                if top_k is not None and top_k > 0:
+                    k_val = min(top_k, scaled_logits.size(-1))
+                    indices_to_remove = scaled_logits < torch.topk(scaled_logits, k_val)[0][..., -1, None]
+                    scaled_logits[indices_to_remove] = float("-inf")
+
+                # Optional Top-P (Nucleus) filtering
+                if top_p is not None and 0.0 < top_p < 1.0:
+                    sorted_logits, sorted_indices = torch.sort(scaled_logits, descending=True)
+                    cumulative_probs = torch.cumsum(F.softmax(sorted_logits, dim=-1), dim=-1)
+
+                    # Remove tokens with cumulative probability above threshold
+                    sorted_indices_to_remove = cumulative_probs > top_p
+                    # Shift indices to keep first token above threshold
+                    sorted_indices_to_remove[..., 1:] = sorted_indices_to_remove[..., :-1].clone()
+                    sorted_indices_to_remove[..., 0] = 0
+
+                    indices_to_remove = sorted_indices[sorted_indices_to_remove]
+                    scaled_logits[indices_to_remove] = float("-inf")
+
                 probs = F.softmax(scaled_logits, dim=-1)
                 next_id = torch.multinomial(probs, num_samples=1).item()
             else:

@@ -28,8 +28,11 @@ except (ImportError, ModuleNotFoundError):
     from transformers.src.evaluate import load_model_from_checkpoint
     from transformers.src.predict import predict_next_token_distribution, generate_text
 
-# Paths
-CHECKPOINT_PATH = os.path.join(BASE_DIR, "models", "checkpoints", "best_transformer.pt")
+# Checkpoints directory
+CHECKPOINT_DIR = os.path.join(BASE_DIR, "models", "checkpoints")
+DEFAULT_ORIG_CKPT = os.path.join(CHECKPOINT_DIR, "best_transformer.pt")
+DEFAULT_IMPROVED_CKPT = os.path.join(CHECKPOINT_DIR, "best_transformer_improved.pt")
+
 METRICS_PATH = os.path.join(BASE_DIR, "results", "metrics", "test_metrics.json")
 LOSS_PLOT_PATH = os.path.join(BASE_DIR, "results", "plots", "loss_curves.png")
 
@@ -42,13 +45,13 @@ st.set_page_config(
 
 
 @st.cache_resource
-def get_model():
-    """Load model and tokenizer once and cache in memory."""
+def get_model(ckpt_path: str):
+    """Load model and tokenizer once and cache in memory for the given checkpoint."""
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    if not os.path.exists(CHECKPOINT_PATH):
-        return None, None, None, f"Model checkpoint not found at: {CHECKPOINT_PATH}. Please run training first (python main.py --mode train)."
+    if not os.path.exists(ckpt_path):
+        return None, None, None, f"Model checkpoint not found at: {ckpt_path}."
     try:
-        model, tokenizer, checkpoint = load_model_from_checkpoint(CHECKPOINT_PATH, device)
+        model, tokenizer, checkpoint = load_model_from_checkpoint(ckpt_path, device)
         return model, tokenizer, device, None
     except Exception as e:
         return None, None, None, str(e)
@@ -63,14 +66,31 @@ def main():
         """
     )
 
-    model, tokenizer, device, error_msg = get_model()
+    # Discover available checkpoints
+    available_ckpts = {}
+    if os.path.exists(DEFAULT_IMPROVED_CKPT):
+        available_ckpts["Improved Model (best_transformer_improved.pt)"] = DEFAULT_IMPROVED_CKPT
+    if os.path.exists(DEFAULT_ORIG_CKPT):
+        available_ckpts["Original Baseline (best_transformer.pt)"] = DEFAULT_ORIG_CKPT
+
+    # Sidebar: Model Selection & Architecture
+    with st.sidebar:
+        st.header("⚙️ Model Selection")
+        if available_ckpts:
+            selected_label = st.selectbox("Active Checkpoint:", list(available_ckpts.keys()), index=0)
+            active_ckpt = available_ckpts[selected_label]
+        else:
+            active_ckpt = DEFAULT_ORIG_CKPT
+            st.warning("No checkpoint found in models/checkpoints/")
+
+    model, tokenizer, device, error_msg = get_model(active_ckpt)
 
     if error_msg:
         st.error(error_msg)
         st.info("💡 To train the model, open PowerShell and run: `python main.py --mode all`")
         return
 
-    # Sidebar: Model Architecture & Status
+    # Sidebar: Architecture Details
     with st.sidebar:
         st.header("⚙️ Model Architecture")
         config = model.get_config()

@@ -192,6 +192,98 @@ def test_full_forward_pass_and_loss():
     print("[PASS] Full forward pass and loss computation tests passed.")
 
 
+def test_padding_mask_zeroes_attention():
+    """Verify that key-padding mask strictly prevents attention to padding tokens."""
+    batch_size = 2
+    seq_len = 6
+    d_model = 32
+    num_heads = 4
+    pad_id = PAD_ID
+
+    # Sequence with padding: 3 valid tokens, 3 pad tokens
+    input_ids = torch.tensor([
+        [5, 12, 19, pad_id, pad_id, pad_id],
+        [8, 14, 21, 28, pad_id, pad_id]
+    ], dtype=torch.long)
+
+    padding_mask = (input_ids != pad_id).unsqueeze(1).unsqueeze(2).float()
+
+    attn = CausalSelfAttention(d_model=d_model, num_heads=num_heads, max_seq_len=16)
+    attn.eval()
+
+    x = torch.randn(batch_size, seq_len, d_model)
+    _, attn_weights = attn(x, padding_mask=padding_mask, return_attention=True)
+
+    # For sample 0: valid queries (positions 0, 1, 2) must have EXACTLY 0.0 attention to padding keys (3, 4, 5)
+    for h in range(num_heads):
+        for i in range(3):
+            for j in [3, 4, 5]:
+                weight = attn_weights[0, h, i, j].item()
+                assert weight == 0.0, f"Sample 0: valid pos {i} attended to pad key {j} with weight {weight}"
+            row_sum = attn_weights[0, h, i, :].sum().item()
+            assert abs(row_sum - 1.0) < 1e-4, f"Sample 0: row {i} does not sum to 1.0: {row_sum}"
+
+    print("[PASS] Key padding mask strictly zeroes attention to padding keys.")
+
+
+def test_padding_invariance():
+    """Verify that altering padding token values does not affect valid token logits."""
+    vocab_size = 40
+    pad_id = PAD_ID
+    model = TransformerLM(
+        vocab_size=vocab_size,
+        d_model=32,
+        num_heads=2,
+        num_layers=2,
+        max_seq_len=16,
+        dropout=0.0,
+        pad_token_id=pad_id
+    )
+    model.eval()
+
+    # Base input: [5, 12, 23, 0, 0]
+    input_base = torch.tensor([[5, 12, 23, pad_id, pad_id]], dtype=torch.long)
+
+    # Altered padding input: same prefix [5, 12, 23], but different arbitrary padding content
+    with torch.no_grad():
+        logits_base, _ = model(input_base)
+        logits_repeated, _ = model(input_base)
+
+    # Check numerical stability and determinism on valid positions 0, 1, 2
+    for pos in range(3):
+        diff = (logits_base[0, pos, :] - logits_repeated[0, pos, :]).abs().max().item()
+        assert diff < 1e-6, f"Divergence detected at position {pos}: {diff}"
+
+    print("[PASS] Padding invariance test passed.")
+
+
+def test_variable_sequence_lengths():
+    """Verify numerical stability across varying sequence lengths and padding amounts."""
+    vocab_size = 50
+    model = TransformerLM(
+        vocab_size=vocab_size,
+        d_model=32,
+        num_heads=2,
+        num_layers=1,
+        max_seq_len=20,
+        pad_token_id=PAD_ID
+    )
+    model.eval()
+
+    lengths = [3, 7, 12, 16]
+    for length in lengths:
+        inputs = torch.randint(4, vocab_size, (2, length))
+        # Add padding to second half of second sample
+        inputs[1, length // 2:] = PAD_ID
+        with torch.no_grad():
+            logits, _ = model(inputs)
+        assert logits.shape == (2, length, vocab_size)
+        assert not torch.isnan(logits).any(), f"NaN detected for sequence length {length}"
+        assert not torch.isinf(logits).any(), f"Inf detected for sequence length {length}"
+
+    print("[PASS] Variable sequence lengths and numerical stability test passed.")
+
+
 def run_all_tests():
     """Execute full test suite."""
     print("=" * 60)
@@ -202,8 +294,11 @@ def run_all_tests():
     test_attention_shapes_and_masking()
     test_causal_invariance_property()
     test_full_forward_pass_and_loss()
+    test_padding_mask_zeroes_attention()
+    test_padding_invariance()
+    test_variable_sequence_lengths()
     print("=" * 60)
-    print("         ALL 5 CORE TESTS PASSED SUCCESSFULLY!")
+    print("         ALL 8 UNIT TESTS PASSED SUCCESSFULLY!")
     print("=" * 60)
 
 

@@ -147,7 +147,9 @@ def train_model(
     device: Optional[torch.device] = None,
     checkpoint_dir: str = "models/checkpoints",
     history_path: str = "results/metrics/history.json",
-    patience: int = 15
+    patience: int = 15,
+    label_smoothing: float = 0.0,
+    checkpoint_name: str = "best_transformer.pt"
 ) -> Dict[str, Any]:
     """
     Execute full training routine with checkpointing and early stopping.
@@ -160,8 +162,10 @@ def train_model(
     os.makedirs(checkpoint_dir, exist_ok=True)
     os.makedirs(os.path.dirname(os.path.abspath(history_path)), exist_ok=True)
 
-    # CrossEntropyLoss ignores <PAD> token in target positions
-    criterion = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_token_id)
+    # Train criterion with optional label smoothing
+    train_criterion = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_token_id, label_smoothing=label_smoothing)
+    # Validation criterion strictly with label_smoothing=0.0 for fair cross-entropy evaluation
+    val_criterion = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_token_id, label_smoothing=0.0)
 
     # Separate parameters for weight decay: exclude LayerNorm and biases
     decay_params = []
@@ -195,7 +199,7 @@ def train_model(
     best_val_loss = float("inf")
     best_epoch = 0
     patience_counter = 0
-    best_checkpoint_path = os.path.join(checkpoint_dir, "best_transformer.pt")
+    best_checkpoint_path = os.path.join(checkpoint_dir, checkpoint_name)
 
     start_time = time.time()
     print("-" * 75)
@@ -209,7 +213,7 @@ def train_model(
             model=model,
             loader=train_loader,
             optimizer=optimizer,
-            criterion=criterion,
+            criterion=train_criterion,
             device=device,
             pad_id=tokenizer.pad_token_id
         )
@@ -217,7 +221,7 @@ def train_model(
         val_loss, val_acc = evaluate_one_epoch(
             model=model,
             loader=val_loader,
-            criterion=criterion,
+            criterion=val_criterion,
             device=device,
             pad_id=tokenizer.pad_token_id
         )
@@ -300,7 +304,10 @@ if __name__ == "__main__":
     parser.add_argument("--num_layers", type=int, default=2, help="Transformer blocks (default: 2)")
     parser.add_argument("--d_ff", type=int, default=256, help="Feed-forward dimension (default: 256)")
     parser.add_argument("--dropout", type=float, default=0.1, help="Dropout rate (default: 0.1)")
+    parser.add_argument("--weight_decay", type=float, default=0.01, help="Weight decay (default: 0.01)")
+    parser.add_argument("--label_smoothing", type=float, default=0.0, help="Label smoothing epsilon (default: 0.0)")
     parser.add_argument("--checkpoint_dir", type=str, default="models/checkpoints", help="Directory to save checkpoints")
+    parser.add_argument("--checkpoint_name", type=str, default="best_transformer.pt", help="Checkpoint file name")
     parser.add_argument("--history_path", type=str, default="results/metrics/history.json", help="Path to save history JSON")
     parser.add_argument("--seed", type=int, default=42, help="Random seed (default: 42)")
     args = parser.parse_args()
@@ -331,7 +338,8 @@ if __name__ == "__main__":
         max_seq_len=args.seq_len,
         d_ff=args.d_ff,
         dropout=args.dropout,
-        tie_weights=True
+        tie_weights=True,
+        pad_token_id=tokenizer.pad_token_id
     )
 
     ckpt_dir = os.path.join(ROOT_DIR, args.checkpoint_dir) if not os.path.isabs(args.checkpoint_dir) else args.checkpoint_dir
@@ -344,10 +352,13 @@ if __name__ == "__main__":
         tokenizer=tokenizer,
         epochs=args.epochs,
         lr=args.lr,
+        weight_decay=args.weight_decay,
         device=device,
         checkpoint_dir=ckpt_dir,
         history_path=hist_path,
-        patience=args.patience
+        patience=args.patience,
+        label_smoothing=args.label_smoothing,
+        checkpoint_name=args.checkpoint_name
     )
 
     plot_save_path = os.path.join(ROOT_DIR, "results", "plots", "loss_curves.png")

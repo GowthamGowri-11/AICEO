@@ -53,6 +53,7 @@ def evaluate_test_set(
 
     total_loss = 0.0
     total_correct = 0
+    total_top5_correct = 0
     total_tokens = 0
 
     with torch.no_grad():
@@ -73,19 +74,27 @@ def evaluate_test_set(
 
                 preds = torch.argmax(valid_logits, dim=-1)
                 total_correct += (preds == valid_targets).sum().item()
+
+                k_val = min(5, valid_logits.size(-1))
+                _, top5_preds = torch.topk(valid_logits, k=k_val, dim=-1)
+                total_top5_correct += (top5_preds == valid_targets.unsqueeze(-1)).any(dim=-1).sum().item()
+
                 total_tokens += valid_targets.numel()
 
     avg_test_loss = (total_loss / total_tokens) if total_tokens > 0 else 0.0
     perplexity = math.exp(avg_test_loss) if avg_test_loss < 20 else float("inf")
     test_accuracy = (total_correct / total_tokens) if total_tokens > 0 else 0.0
+    top5_accuracy = (total_top5_correct / total_tokens) if total_tokens > 0 else 0.0
 
     metrics = {
         "test_loss": round(avg_test_loss, 4),
         "test_perplexity": round(perplexity, 4),
         "test_token_accuracy": round(test_accuracy, 4),
         "test_token_accuracy_pct": round(test_accuracy * 100, 2),
+        "test_top5_accuracy_pct": round(top5_accuracy * 100, 2),
         "total_evaluated_tokens": total_tokens,
         "total_correct_tokens": total_correct,
+        "total_top5_correct_tokens": total_top5_correct,
         "vocabulary_size": tokenizer.vocab_size,
         "model_parameters": model.count_parameters()["total"],
         "trainable_parameters": model.count_parameters()["trainable"]
@@ -121,7 +130,8 @@ def load_model_from_checkpoint(
         max_seq_len=cfg["max_seq_len"],
         d_ff=cfg["d_ff"],
         dropout=cfg["dropout"],
-        tie_weights=cfg["tie_weights"]
+        tie_weights=cfg["tie_weights"],
+        pad_token_id=cfg.get("pad_token_id", 0)
     )
     model.load_state_dict(checkpoint["model_state_dict"])
     model.to(device)
